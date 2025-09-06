@@ -25,6 +25,8 @@ class SpeakerIdentifier:
         self.api_key = api_key
         self.temperature = temperature
         self.max_tokens = max_tokens
+        # For GPT-5-nano compatibility
+        self.use_gpt5_nano = model == "gpt-5-nano"
         self.client = self._initialize_client()
 
     def _initialize_client(self):
@@ -56,12 +58,11 @@ class SpeakerIdentifier:
             logger.error(f"Speaker identification failed: {e}")
             return diarized_segments, {}
 
-    def _build_context_text(self, segments: List[Dict], max_segments: int = 50) -> str:
-        """Build context text from first segments for speaker identification"""
-        context_segments = segments[:max_segments]
-        
+    def _build_context_text(self, segments: List[Dict]) -> str:
+        """Build context text from entire transcript for speaker identification"""
         context_lines = []
-        for seg in context_segments:
+        
+        for seg in segments:
             start_time = self._format_timestamp(seg["start"])
             speaker = seg["speaker"]
             text = seg["text"].strip()
@@ -79,15 +80,9 @@ class SpeakerIdentifier:
 
     def _query_llm_for_speakers(self, context_text: str) -> Dict[str, str]:
         """Query LLM to identify speaker names from context"""
-        prompt = f"""Analyze this podcast transcript and identify the real names of the speakers based on context clues like introductions, mentions of names, or other identifying information.
-
-Return a JSON object mapping generic speaker IDs to identified names. Only include speakers you can confidently identify. If you cannot identify a speaker, do not include them in the mapping.
-
-Format:
-{{
-    "SPEAKER_01": "John Doe",
-    "SPEAKER_02": "Jane Smith"
-}}
+        prompt = f"""Here is the complete transcript of a podcast. Each line starts with a timestamp and SPEAKER_ID.
+Please output a JSON mapping of SPEAKER_ID → real name, using context clues (introductions, greetings, etc.).
+If the speaker cannot be identified, label them "Unknown" or "Voiceover" as appropriate.
 
 Transcript:
 {context_text}
@@ -96,12 +91,20 @@ JSON Response:"""
 
         try:
             if self.provider == "openai":
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=self.temperature,
-                    max_tokens=self.max_tokens
-                )
+                # Handle GPT-5-nano specific parameters
+                if self.use_gpt5_nano:
+                    response = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=[{"role": "user", "content": prompt}],
+                        max_completion_tokens=self.max_tokens
+                    )
+                else:
+                    response = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=self.temperature,
+                        max_tokens=self.max_tokens
+                    )
                 content = response.choices[0].message.content
                 
             elif self.provider == "anthropic":
@@ -143,17 +146,29 @@ JSON Response:"""
 
     def _apply_speaker_mappings(self, segments: List[Dict], 
                                mappings: Dict[str, str]) -> List[Dict]:
-        """Apply speaker name mappings to transcript segments"""
+        """Apply speaker name mappings to transcript segments using regex replacement"""
+        import re
+        
         updated_segments = []
         
         for seg in segments:
             updated_seg = seg.copy()
             speaker_id = seg["speaker"]
+            text = seg["text"]
             
+            # Use regex to replace speaker IDs in the text as well
+            updated_text = text
+            for old_speaker, new_name in mappings.items():
+                # Replace speaker mentions in the text content
+                pattern = re.compile(re.escape(old_speaker), re.IGNORECASE)
+                updated_text = pattern.sub(new_name, updated_text)
+            
+            # Update the speaker field if there's a mapping
             if speaker_id in mappings:
                 updated_seg["speaker"] = mappings[speaker_id]
                 updated_seg["original_speaker_id"] = speaker_id
             
+            updated_seg["text"] = updated_text
             updated_segments.append(updated_seg)
         
         return updated_segments
