@@ -1,0 +1,47 @@
+# AI Auto Transcripts Configuration
+
+# Podcast feeds to process
+feeds:
+  - name: "Security Now"
+    url: "https://feeds.twit.tv/sn.xml"
+    max_episodes: 1
+    enabled: true
+  
+  - name: "This Week in Tech"
+    url: "https://feeds.twit.tv/twit.xml"
+    max_episodes: 1
+    enabled: true
+    
+  - name: "Intelligent Machines"
+    url: "https://feeds.twit.tv/twig.xml"
+    max_episodes: 1
+    enabled: true
+
+# LLM configuration for speaker identification
+llm:
+  provider: "openai"  # openai or anthropic
+  model: "gpt-4"
+  # API key will be read from environment variables:
+  # OPENAI_API_KEY or ANTHROPIC_API_KEY
+  temperature: 0.1
+  max_tokens: 4000
+
+# Transcription settings
+transcription:
+  model_size: "base"  # tiny, base, small, medium, large
+  language: null  # auto-detect if null
+  device: "auto"  # auto, cpu, cuda
+
+# Speaker diarization settings
+diarization:
+  enabled: true
+  min_speakers: 1
+  max_speakers: 10
+  model: "pyannote/speaker-diarization-3.1"
+  # hf_token will be read from HF_TOKEN environment variable
+
+# Output settings
+output:
+  base_dir: "output"
+  formats: ["txt", "json", "srt"]
+  include_timestamps: true
