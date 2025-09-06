@@ -102,6 +102,11 @@ class TranscriptionPipeline:
         start_time = time.time()
         logger.info(f"Processing episode: {episode.title}")
         
+        # Check if episode already has transcription files
+        if self._episode_already_transcribed(episode, output_dir):
+            logger.info(f"Episode already transcribed, skipping: {episode.title}")
+            return None
+        
         try:
             audio_path = self.rss_parser.download_audio(episode, 
                                                        Path(output_dir) if output_dir else None)
@@ -156,6 +161,34 @@ class TranscriptionPipeline:
         except Exception as e:
             logger.error(f"Failed to process episode {episode.title}: {e}")
             raise
+
+    def _episode_already_transcribed(self, episode: Episode, output_dir: Optional[str] = None) -> bool:
+        """Check if episode already has transcription files"""
+        # Use the same path generation logic as the exporter
+        base_output_dir = Path(output_dir) if output_dir else Path(self.config.output.base_dir)
+        
+        safe_title = self.exporter._sanitize_filename(episode.title)
+        safe_podcast_name = self.exporter._sanitize_filename(episode.podcast_name or "Unknown_Podcast")
+        
+        episode_dir = base_output_dir / safe_podcast_name / safe_title
+        
+        # Use episode identifier for filename, fallback to safe title
+        filename_prefix = episode.episode_identifier or safe_title
+        
+        # Check for any of the main transcription files
+        transcription_files = [
+            f"{filename_prefix}_raw.json",
+            f"{filename_prefix}_diarized.json", 
+            f"{filename_prefix}_enhanced.json"
+        ]
+        
+        for filename in transcription_files:
+            filepath = episode_dir / filename
+            if filepath.exists():
+                logger.debug(f"Found existing transcription file: {filepath}")
+                return True
+        
+        return False
 
     def get_processing_stats(self) -> Dict:
         """Get statistics about processing capabilities"""
