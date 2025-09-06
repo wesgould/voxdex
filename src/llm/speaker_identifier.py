@@ -116,6 +116,37 @@ class SpeakerIdentifier:
                         seg_idx = segments.index(seg)
                         sampled_segments.extend(segments[max(0, seg_idx-1):seg_idx+3])
             
+            # Ensure we have representative samples from ALL speakers, especially late joiners
+            # Get speaker distribution across the entire episode
+            speaker_segments = {}
+            for seg in segments:
+                speaker = seg["speaker"]
+                if speaker not in speaker_segments:
+                    speaker_segments[speaker] = []
+                speaker_segments[speaker].append(seg)
+            
+            # For each speaker not well-represented in sampled_segments, add more samples
+            current_speakers = set(seg["speaker"] for seg in sampled_segments)
+            missing_speakers = unique_speakers - current_speakers
+            
+            # Add samples from missing speakers (likely late joiners)
+            for speaker in missing_speakers:
+                speaker_segs = speaker_segments[speaker]
+                # Take first few appearances to capture introductions/context
+                sampled_segments.extend(speaker_segs[:5])
+                # Take some mid-conversation samples for context
+                if len(speaker_segs) > 10:
+                    sampled_segments.extend(speaker_segs[len(speaker_segs)//2:len(speaker_segs)//2 + 3])
+            
+            # Also ensure speakers with very few samples get boosted
+            for speaker in current_speakers:
+                speaker_count = sum(1 for seg in sampled_segments if seg["speaker"] == speaker)
+                if speaker_count < 3 and speaker in speaker_segments:
+                    # Add more samples for under-represented speakers
+                    speaker_segs = speaker_segments[speaker]
+                    additional_samples = min(5 - speaker_count, len(speaker_segs))
+                    sampled_segments.extend(speaker_segs[:additional_samples])
+            
             # Remove duplicates while preserving order
             seen = set()
             segments_to_use = []
@@ -125,7 +156,8 @@ class SpeakerIdentifier:
                     segments_to_use.append(seg)
                     seen.add(seg_id)
             
-            segments_to_use = segments_to_use[:max_segments]
+            # Allow slightly more segments to accommodate all speakers
+            segments_to_use = segments_to_use[:max_segments + 50]
         else:
             segments_to_use = segments
         
