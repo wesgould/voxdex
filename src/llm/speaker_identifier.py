@@ -203,9 +203,12 @@ TASK: Map each SPEAKER_ID to a real name using context clues and metadata.
 
 RULES:
 1. Use introductions, greetings, and names mentioned in the transcript
-2. Match voices to the known hosts/guests from metadata
-3. Label unidentifiable speakers as "Unknown" or "Voiceover" 
-4. Return ONLY valid JSON - no explanations or extra text
+2. Match voices to the known hosts/guests from metadata - pay special attention to who is listed as hosts/co-hosts/guests
+3. Look for topic expertise clues: if someone talks extensively about topics matching a host/guest's known specialty, they may be that person
+4. The transcription diarization isn't 100% accurate - occasionally the same person may be listed as different speakers (eg SPEAKER_01 and SPEAKER_04). If you're fairly confident using context clues and metadata, you can map the same person to multiple "SPEAKER_XX"s
+5. Cross-reference: if metadata lists someone as a host/guest but no SPEAKER_XX is mapped to them, review all unmapped/unknown speakers to see if any could be the missing person based on context, speaking patterns, or topic expertise
+6. Label unidentifiable speakers as "Unknown" or "Voiceover" 
+7. Return ONLY valid JSON - no explanations or extra text
 
 OUTPUT FORMAT (REQUIRED):
 Return exactly this JSON structure:
