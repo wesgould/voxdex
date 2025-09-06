@@ -135,7 +135,27 @@ class TranscriptionPipeline:
             diarized_segments = whisperx_result["diarized_segments"]
             
             logger.info("Step 3: Identifying speakers with LLM...")
-            llm_segments, speaker_mappings = self.speaker_identifier.identify_speakers(diarized_segments)
+            # Prepare metadata for speaker identification
+            episode_metadata = {
+                "episode": {
+                    "title": episode.title,
+                    "hosts": episode.hosts,
+                    "author": episode.author,
+                    "description": episode.description,
+                    "summary": episode.summary,
+                    "subtitle": episode.subtitle,
+                    "episode_number": episode.episode_number,
+                    "categories": episode.categories
+                },
+                "podcast": {
+                    "name": episode.podcast_name,
+                    "description": episode.podcast_description,
+                    "author": episode.podcast_author,
+                    "language": episode.podcast_language,
+                    "categories": episode.podcast_categories
+                }
+            }
+            llm_segments, speaker_mappings = self.speaker_identifier.identify_speakers(diarized_segments, episode_metadata)
             
             logger.info("Step 4: Exporting transcripts and metadata...")
             

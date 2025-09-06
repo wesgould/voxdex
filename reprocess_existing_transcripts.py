@@ -122,7 +122,19 @@ class TranscriptReprocessor:
             
             # Apply LLM speaker identification
             logger.info("Applying LLM speaker identification...")
-            llm_segments, speaker_mappings = self.speaker_identifier.identify_speakers(diarized_segments)
+            
+            # Try to load existing metadata for better speaker identification
+            metadata = None
+            metadata_file = episode_info['diarized_file'].parent / f"{episode_info['diarized_file'].stem.replace('_diarized', '_metadata')}.json"
+            if metadata_file.exists():
+                try:
+                    with open(metadata_file, 'r') as f:
+                        metadata = json.load(f)
+                    logger.info("Loaded existing metadata for speaker identification")
+                except Exception as e:
+                    logger.warning(f"Failed to load metadata: {e}")
+            
+            llm_segments, speaker_mappings = self.speaker_identifier.identify_speakers(diarized_segments, metadata)
             
             if speaker_mappings:
                 logger.info(f"Speaker mappings found: {speaker_mappings}")
