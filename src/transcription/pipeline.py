@@ -8,7 +8,7 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from ..config import ConfigManager
-from ..utils import RSSParser, Episode
+from ..utils import RSSParser, Episode, PodcastFilePruner
 from ..transcription import get_transcriber
 from ..transcription.whisperx_transcriber import WhisperXTranscriber
 from ..diarization import get_diarizer
@@ -48,6 +48,9 @@ class TranscriptionPipeline:
             output_dir=self.config.output.base_dir,
             include_timestamps=self.config.output.include_timestamps
         )
+        
+        # Initialize file pruner for cleanup
+        self.file_pruner = PodcastFilePruner(self.config.file_retention)
 
     def process_all_feeds(self, output_dir: Optional[str] = None):
         """Process all configured RSS feeds"""
@@ -62,6 +65,9 @@ class TranscriptionPipeline:
                 self.process_feed(feed_config.url, output_dir, feed_config.max_episodes)
             except Exception as e:
                 logger.error(f"Error processing feed {feed_config.name}: {e}")
+        
+        # Run file cleanup after processing all feeds
+        self.cleanup_old_files()
 
     def process_feed(self, feed_url: str, output_dir: Optional[str] = None, 
                     max_episodes: Optional[int] = None):
@@ -190,6 +196,32 @@ class TranscriptionPipeline:
         
         return False
 
+    def cleanup_old_files(self, dry_run: bool = False):
+        """Clean up old podcast audio files based on retention policy"""
+        logger.info("Starting file cleanup process")
+        
+        try:
+            results = self.file_pruner.prune_old_files(dry_run=dry_run)
+            
+            # Also cleanup empty directories
+            removed_dirs = self.file_pruner.cleanup_empty_directories(dry_run=dry_run)
+            if removed_dirs:
+                logger.info(f"Cleaned up {len(removed_dirs)} empty directories")
+                
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error during file cleanup: {e}")
+            return {'deleted': [], 'retained': []}
+    
+    def get_file_statistics(self) -> Dict:
+        """Get statistics about downloaded files"""
+        try:
+            return self.file_pruner.get_file_stats()
+        except Exception as e:
+            logger.error(f"Error getting file statistics: {e}")
+            return {}
+
     def get_processing_stats(self) -> Dict:
         """Get statistics about processing capabilities"""
         return {
@@ -197,5 +229,7 @@ class TranscriptionPipeline:
             "diarization_enabled": self.config.diarization.enabled,
             "llm_provider": self.config.llm.provider,
             "output_formats": self.config.output.formats,
-            "feeds_configured": len(self.config.feeds)
+            "feeds_configured": len(self.config.feeds),
+            "file_retention_enabled": self.config.file_retention.enabled,
+            "retention_days": self.config.file_retention.retention_days
         }

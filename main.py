@@ -17,6 +17,9 @@ def main():
     parser.add_argument("--episode", "-e", type=str, help="Process single episode URL")
     parser.add_argument("--feed", "-f", type=str, help="Process specific RSS feed")
     parser.add_argument("--output-dir", "-o", type=str, help="Override output directory")
+    parser.add_argument("--cleanup", action="store_true", help="Run file cleanup to remove old audio files")
+    parser.add_argument("--cleanup-dry-run", action="store_true", help="Preview what files would be deleted without actually deleting them")
+    parser.add_argument("--file-stats", action="store_true", help="Show statistics about downloaded files")
     
     args = parser.parse_args()
     
@@ -24,7 +27,24 @@ def main():
         config = ConfigManager(args.config)
         pipeline = TranscriptionPipeline(config)
         
-        if args.episode:
+        if args.file_stats:
+            # Show file statistics
+            stats = pipeline.get_file_statistics()
+            print(f"File Statistics:")
+            print(f"  Total files: {stats.get('total_files', 0)}")
+            print(f"  Total size: {stats.get('total_size_mb', 0)} MB")
+            if stats.get('oldest_file'):
+                print(f"  Oldest file: {stats['oldest_file']['path']} (modified: {stats['oldest_file']['modified']})")
+            if stats.get('newest_file'):
+                print(f"  Newest file: {stats['newest_file']['path']} (modified: {stats['newest_file']['modified']})")
+                
+        elif args.cleanup or args.cleanup_dry_run:
+            # Run cleanup
+            results = pipeline.cleanup_old_files(dry_run=args.cleanup_dry_run)
+            action = "would be deleted" if args.cleanup_dry_run else "deleted"
+            print(f"Cleanup complete: {len(results['deleted'])} files {action}, {len(results['retained'])} files retained")
+            
+        elif args.episode:
             pipeline.process_single_episode(args.episode, args.output_dir)
         elif args.feed:
             pipeline.process_feed(args.feed, args.output_dir)

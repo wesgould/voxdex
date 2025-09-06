@@ -1,6 +1,6 @@
 # AI Auto Transcripts
 
-An AI-powered podcast transcription system that provides high-quality speaker diarization using WhisperX and optional LLM speaker identification.
+An AI-powered podcast transcription system that provides high-quality speaker diarization using WhisperX, optional LLM speaker identification, and intelligent file management.
 
 ## Features
 
@@ -10,6 +10,8 @@ An AI-powered podcast transcription system that provides high-quality speaker di
 - **Multiple Output Formats**: Exports as TXT, JSON, and SRT subtitle files
 - **Batch Processing**: Process multiple episodes from RSS feeds automatically
 - **Three Output Versions**: Raw transcription, diarized (SPEAKER_01/02), and LLM-enhanced
+- **Automated File Management**: Configurable retention policy for downloaded audio files
+- **Storage Optimization**: Automatically cleans up old audio files while preserving transcripts
 
 ## How It Works
 
@@ -71,6 +73,13 @@ diarization:
 # Output directory
 output:
   base_dir: "/path/to/output/directory"  # Where transcripts are saved
+
+# File retention (optional - for automatic cleanup)
+file_retention:
+  enabled: true
+  retention_days: 7  # Keep audio files for 7 days after transcription
+  audio_extensions: [".mp3", ".wav", ".m4a"]
+  downloads_dir: "downloads"
 ```
 
 ### Optional Settings
@@ -140,6 +149,11 @@ python main.py --episode "https://example.com/episode.mp3"
 
 # Custom output directory
 python main.py --output-dir "/custom/path"
+
+# File management commands
+python main.py --file-stats      # Show download statistics
+python main.py --cleanup-dry-run # Preview what would be deleted
+python main.py --cleanup         # Actually delete old files
 ```
 
 ### Testing
@@ -175,6 +189,11 @@ output/
 └── Other_Podcast/
     └── Episode_Directory/
         └── [Episode files...]
+
+downloads/  # Audio files (automatically cleaned up based on retention policy)
+├── Episode_1.mp3
+├── Episode_2.wav
+└── Episode_3.m4a
 ```
 
 ### File Organization Benefits
@@ -201,6 +220,43 @@ output/
 - Example: `SN_1041_enhanced.json`
 
 Each version available in: `.txt`, `.json`, and `.srt` formats
+
+## File Management
+
+The system includes intelligent file management to optimize storage:
+
+### Features:
+- **Automatic Cleanup**: Runs after processing all feeds
+- **Configurable Retention**: Keep files for any number of days (7 by default)
+- **Safe Operation**: Never deletes transcripts, metadata, or output files
+- **Transparent Logging**: Shows exactly what files are deleted/retained
+- **Dry-Run Mode**: Preview changes before applying them
+
+### Storage Management Commands:
+
+```bash
+# Check current storage usage
+python main.py --file-stats
+# Output: Total files: 15, Total size: 2.1 GB, Oldest: 2025-01-15, Newest: 2025-01-22
+
+# See what would be cleaned up
+python main.py --cleanup-dry-run
+# Output: 8 files would be deleted, 7 files retained
+
+# Perform actual cleanup
+python main.py --cleanup
+# Output: 8 files deleted, 7 files retained, 350MB freed
+```
+
+### Customizing Retention Policy:
+
+```yaml
+file_retention:
+  enabled: true
+  retention_days: 30        # Keep files for 30 days instead of 7
+  audio_extensions: [".mp3", ".wav", ".m4a", ".flac"]  # Add FLAC support
+  downloads_dir: "downloads"
+```
 
 ## GPU Support
 
@@ -239,12 +295,19 @@ Each version available in: `.txt`, `.json`, and `.srt` formats
    - Use smaller Whisper model: change `model_size` to "tiny" or "base"
    - Process fewer episodes: reduce `max_episodes` in config
 
+5. **Disk space issues**
+   - Check storage usage: `python main.py --file-stats`
+   - Clean up old files: `python main.py --cleanup`
+   - Adjust retention period in `config.yaml`
+
 ### Performance Tips
 
 - **Faster processing**: Use "base" or "small" model instead of "large"
 - **Better accuracy**: Use "medium" or "large" model (requires more GPU memory)
 - **Batch processing**: Process multiple feeds overnight
 - **Storage**: Each hour of audio ≈ 1-5MB of transcript files
+- **File Management**: Set appropriate `retention_days` to balance storage and backup needs
+- **Cleanup**: Use `--cleanup-dry-run` before making changes to retention settings
 
 ## Project Structure
 
@@ -261,7 +324,9 @@ ai-auto-transcripts/
     ├── diarization/    # Speaker separation (legacy)
     ├── llm/           # LLM speaker identification
     ├── export/        # Output file generation
-    └── utils/         # RSS parsing and utilities
+    └── utils/         # RSS parsing, file management, and utilities
+        ├── rss_parser.py    # RSS feed processing
+        └── file_pruner.py   # File retention management
 ```
 
 ## Advanced Configuration
@@ -289,6 +354,12 @@ feeds:
 output:
   formats: ["txt", "srt"]  # Skip JSON output
   include_timestamps: true # Include timing info
+
+# File retention customization
+file_retention:
+  enabled: false          # Disable automatic cleanup
+  retention_days: 14       # Keep files for 2 weeks
+  downloads_dir: "audio"   # Custom download directory
 ```
 
 ## Support

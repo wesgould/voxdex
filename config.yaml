@@ -14,7 +14,7 @@ feeds:
     
   - name: "Intelligent Machines"
     url: "https://feeds.twit.tv/twig.xml"
-    max_episodes: 1
+    max_episodes: 2
     enabled: true
 
 # LLM configuration for speaker identification
@@ -45,3 +45,10 @@ output:
   base_dir: "output"
   formats: ["txt", "json", "srt"]
   include_timestamps: true
+
+# File retention settings
+file_retention:
+  enabled: true
+  retention_days: 7  # Keep files for 7 days after transcription
+  audio_extensions: [".mp3", ".wav", ".m4a"]
+  downloads_dir: "downloads"

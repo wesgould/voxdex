@@ -50,12 +50,21 @@ class PodcastFeed:
 
 
 @dataclass
+class FileRetentionConfig:
+    enabled: bool = True
+    retention_days: int = 30  # Keep files for 30 days by default
+    audio_extensions: List[str] = field(default_factory=lambda: ['.mp3', '.wav', '.m4a'])
+    downloads_dir: str = "downloads"
+
+
+@dataclass
 class Config:
     feeds: List[PodcastFeed] = field(default_factory=list)
     llm: LLMConfig = field(default_factory=LLMConfig)
     transcription: TranscriptionConfig = field(default_factory=TranscriptionConfig)
     diarization: DiarizationConfig = field(default_factory=DiarizationConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
+    file_retention: FileRetentionConfig = field(default_factory=FileRetentionConfig)
 
 
 class ConfigManager:
@@ -93,7 +102,8 @@ class ConfigManager:
             llm=LLMConfig(**llm_data),
             transcription=TranscriptionConfig(**data.get('transcription', {})),
             diarization=DiarizationConfig(**diarization_data),
-            output=OutputConfig(**data.get('output', {}))
+            output=OutputConfig(**data.get('output', {})),
+            file_retention=FileRetentionConfig(**data.get('file_retention', {}))
         )
 
     def _save_default_config(self):
@@ -127,6 +137,12 @@ class ConfigManager:
                 'base_dir': 'outputs',
                 'formats': ['txt', 'json', 'srt'],
                 'include_timestamps': True
+            },
+            'file_retention': {
+                'enabled': True,
+                'retention_days': 30,
+                'audio_extensions': ['.mp3', '.wav', '.m4a'],
+                'downloads_dir': 'downloads'
             }
         }
 
