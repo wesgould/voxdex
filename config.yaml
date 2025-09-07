@@ -9,7 +9,7 @@ feeds:
   
   - name: "This Week in Tech"
     url: "https://feeds.twit.tv/twit.xml"
-    max_episodes: 1
+    max_episodes: 2
     enabled: true
     
   - name: "Intelligent Machines"
