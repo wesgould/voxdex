@@ -44,6 +44,7 @@ ENV/
 *~
 .DS_Store
 Thumbs.db
+.claude
 
 # Project-specific
 downloads/
