@@ -9,12 +9,12 @@ feeds:
   
   - name: "This Week in Tech"
     url: "https://feeds.twit.tv/twit.xml"
-    max_episodes: 2
+    max_episodes: 15
     enabled: true
     
   - name: "Intelligent Machines"
     url: "https://feeds.twit.tv/twig.xml"
-    max_episodes: 2
+    max_episodes: 30
     enabled: true
 
 # LLM configuration for speaker identification

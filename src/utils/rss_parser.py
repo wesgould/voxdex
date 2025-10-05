@@ -195,10 +195,12 @@ class RSSParser:
         """Extract episode identifier from title (e.g., 'SN_1041' from 'SN 1041: Title')"""
         # Common patterns for episode identifiers
         patterns = [
-            r'(SN\s*\d+)',  # Security Now: SN 1041
-            r'(EP\s*\d+)',  # Episode EP 123
-            r'(#\d+)',      # #123
-            r'(\d+)',       # Just numbers
+            r'(SN\s*\d+)',      # Security Now: SN 1041
+            r'(TWIT\s*\d+)',    # This Week in Tech: TWiT 1041
+            r'(IM\s*\d+)',      # Intelligent Machines: IM 838
+            r'(EP\s*\d+)',      # Episode EP 123
+            r'(#\d+)',          # #123
+            r'(\d+)',           # Just numbers (fallback)
         ]
         
         for pattern in patterns:
