@@ -9,7 +9,8 @@ openai-whisper>=20231117
 whisperx>=3.1.1
 pyannote-audio>=3.1.0
 # For AMD ROCm support, install PyTorch with:
-# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm5.6
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2
+# Note: whisperx may warn about version mismatch, but PyTorch 2.5.x works fine
 torch>=2.0.0
 torchaudio>=2.0.0
 transformers>=4.30.0
